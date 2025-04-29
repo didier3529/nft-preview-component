@@ -1,161 +1,107 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { useLayerStore } from '../../stores';
-import { createFadeAnimation } from '../../lib/animation';
+import React, { useRef, useEffect, useState } from 'react';
+import { useLayerStore } from '../../store/layerStore';
+import { fadeIn, scaleIn } from '../../lib/animation';
 import './NFTPreview.css';
 
-// Constants
-const DEFAULT_DIMENSIONS = {
-  width: 500,
-  height: 500
-};
-
-// Error handling
-const handleRenderingError = (err, setError) => {
-  console.error("NFT Rendering error:", err);
-  setError(err.message || 'Error rendering NFT preview');
-};
-
-// Helper function to load and draw an image
-const loadImage = (url) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = (err) => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
-};
-
-const NFTPreview = ({ 
-  width = DEFAULT_DIMENSIONS.width, 
-  height = DEFAULT_DIMENSIONS.height,
-  className = ''
+const NFTPreview = ({
+  width = 500,
+  height = 500,
+  className = '',
+  children
 }) => {
   const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const fadeAnimation = useRef(null);
+  const [error, setError] = useState(null);
+  
+  const { layers, selectedTraits } = useLayerStore();
 
-  // Get layers from store with proper type handling
-  const { 
-    layers,
-    layerOrder,
-    selectedTraits,
-    previewConfig = DEFAULT_DIMENSIONS
-  } = useLayerStore();
-
-  // Initialize fade animation
   useEffect(() => {
-    if (containerRef.current) {
-      fadeAnimation.current = createFadeAnimation(containerRef.current, {
-        duration: 300,
-        easing: 'ease-in-out'
-      });
-      fadeAnimation.current?.play();
-    }
-    return () => {
-      fadeAnimation.current?.stop();
-    };
-  }, []);
-
-  // Memoize visible layers in correct order
-  const visibleLayers = useMemo(() => {
-    return layerOrder
-      .map(id => layers[id])
-      .filter(layer => layer && layer.visible)
-      .sort((a, b) => a.zIndex - b.zIndex);
-  }, [layers, layerOrder]);
-
-  // Render layers to canvas
-  useEffect(() => {
-    const renderLayers = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        setError('Could not get canvas context');
-        return;
-      }
-
+    const loadAndDrawLayers = async () => {
+      if (!canvasRef.current) return;
+      
       setIsLoading(true);
       setError(null);
+      
+      const ctx = canvasRef.current.getContext('2d');
+      if (!ctx) {
+        setError('Canvas context not available');
+        setIsLoading(false);
+        return;
+      }
 
       try {
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
-
-        // Set background if configured
-        if (previewConfig.background) {
-          ctx.fillStyle = previewConfig.background;
-          ctx.fillRect(0, 0, width, height);
-        }
-
-        // Draw each visible layer
-        for (const layer of visibleLayers) {
-          const selectedAssetId = selectedTraits[layer.id];
-          const selectedAsset = layer.assets?.find(asset => asset.id === selectedAssetId);
+        
+        // Sort layers by z-index
+        const sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+        
+        // Load and draw each visible layer
+        for (const layer of sortedLayers) {
+          if (!layer.visible) continue;
           
-          if (selectedAsset?.url) {
-            try {
-              const image = await loadImage(selectedAsset.url);
-              
-              // Apply layer opacity if set
-              const previousAlpha = ctx.globalAlpha;
-              if (layer.opacity !== undefined) {
-                ctx.globalAlpha = layer.opacity;
-              }
-
-              // Apply blend mode if set
-              const previousComposite = ctx.globalCompositeOperation;
-              if (layer.blendMode) {
-                ctx.globalCompositeOperation = layer.blendMode;
-              }
-
-              // Draw the image
-              ctx.drawImage(image, 0, 0, width, height);
-
-              // Restore previous canvas state
-              ctx.globalAlpha = previousAlpha;
-              ctx.globalCompositeOperation = previousComposite;
-            } catch (err) {
-              console.warn(`Failed to render layer ${layer.id}:`, err);
-              // Continue with other layers
-            }
-          }
+          const selectedAsset = layer.assets?.find(
+            asset => asset.id === selectedTraits[layer.id]
+          );
+          
+          if (!selectedAsset) continue;
+          
+          const image = new Image();
+          image.src = selectedAsset.url;
+          
+          await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error(`Failed to load image: ${selectedAsset.url}`));
+          });
+          
+          // Apply layer properties
+          ctx.globalAlpha = layer.opacity ?? 1;
+          ctx.globalCompositeOperation = layer.blendMode ?? 'source-over';
+          
+          // Draw the image
+          ctx.drawImage(image, 0, 0, width, height);
         }
+        
+        // Apply animations
+        fadeIn(canvasRef.current);
+        scaleIn(canvasRef.current);
+        
       } catch (err) {
-        handleRenderingError(err, setError);
+        setError(err instanceof Error ? err.message : 'Failed to load NFT preview');
       } finally {
         setIsLoading(false);
       }
     };
 
-    renderLayers();
-  }, [visibleLayers, selectedTraits, width, height, previewConfig]);
+    loadAndDrawLayers();
+  }, [layers, selectedTraits, width, height]);
 
   return (
-    <div className={`nft-preview-container ${className}`} ref={containerRef}>
-      <div className="nft-preview-wrapper">
-        <canvas
-          ref={canvasRef}
-          width={width}
-          height={height}
-          className={`nft-preview-canvas ${isLoading ? 'loading' : ''}`}
-        />
-        {isLoading && (
-          <div className="nft-preview-loading">
-            <div className="nft-preview-spinner"></div>
-            <span className="nft-preview-loading-text">Loading...</span>
-          </div>
-        )}
-        {error && (
-          <div className="nft-preview-error">
-            {error}
-          </div>
-        )}
-      </div>
+    <div 
+      className={`nft-preview-container ${className}`}
+      style={{ width, height }}
+    >
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        className={`nft-preview-canvas ${isLoading ? 'loading' : ''}`}
+      />
+      
+      {isLoading && (
+        <div className="nft-preview-loading">
+          <div className="loading-spinner" />
+          <span>Loading NFT...</span>
+        </div>
+      )}
+      
+      {error && (
+        <div className="nft-preview-error">
+          <span>❌ {error}</span>
+        </div>
+      )}
+      
+      {children}
     </div>
   );
 };
