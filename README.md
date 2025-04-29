@@ -1,16 +1,16 @@
 # NFT Preview Component
 
-A modern React component for previewing NFT layers with canvas rendering, smooth animations, and a polished UI.
+A modern, performant React component for previewing NFT artwork with layer management and animation support.
 
 ## Features
 
-- 🎨 Canvas-based rendering for high-performance layer composition
-- ✨ Smooth fade animations and transitions
-- 🎯 Support for layer opacity and blend modes
-- 🔄 Loading states with animated spinner
-- ⚠️ Error handling with styled error messages
-- 📱 Responsive design that works at any size
-- 🎭 Custom animation utilities for reusability
+- 🎨 Canvas-based rendering for optimal performance
+- ✨ Smooth animations and transitions
+- 🎯 Layer management with z-index and blend modes
+- 🌈 Customizable background and dimensions
+- 📱 Responsive design
+- 🎭 Loading and error states
+- 💪 TypeScript support
 
 ## Installation
 
@@ -22,76 +22,114 @@ yarn add nft-preview-component
 
 ## Usage
 
+### Basic Example
+
 ```jsx
 import NFTPreview from 'nft-preview-component';
-import { useLayerStore } from './stores';
+import 'nft-preview-component/styles.css';
 
 function App() {
   return (
     <NFTPreview
       width={500}
       height={500}
-      className="my-preview"
+      className="my-nft-preview"
     />
   );
 }
 ```
 
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| width | number | 500 | Canvas width in pixels |
-| height | number | 500 | Canvas height in pixels |
-| className | string | '' | Additional CSS classes |
-
-## Layer Store
-
-The component uses a layer store to manage NFT layers. Configure your store like this:
+### With Layer Management
 
 ```jsx
-const layers = {
-  background: {
-    id: 'background',
-    visible: true,
-    opacity: 1,
-    zIndex: 0,
-    assets: [
-      { id: 'bg1', url: 'path/to/bg1.png' }
-    ]
-  }
-  // ... more layers
-};
+import { useEffect } from 'react';
+import NFTPreview from 'nft-preview-component';
+import { useLayerStore } from 'nft-preview-component/store';
 
-const selectedTraits = {
-  background: 'bg1'
-  // ... selected assets for each layer
-};
+function NFTGenerator() {
+  const { addLayer, updateLayer, setSelectedTrait } = useLayerStore();
+
+  useEffect(() => {
+    // Add background layer
+    addLayer({
+      id: 'background',
+      name: 'Background',
+      visible: true,
+      zIndex: 0,
+      assets: [{
+        id: 'blue-bg',
+        url: '/backgrounds/blue.png'
+      }]
+    });
+
+    // Add character layer
+    addLayer({
+      id: 'character',
+      name: 'Character',
+      visible: true,
+      zIndex: 1,
+      assets: [{
+        id: 'basic-char',
+        url: '/characters/basic.png'
+      }]
+    });
+
+    // Select initial traits
+    setSelectedTrait('background', 'blue-bg');
+    setSelectedTrait('character', 'basic-char');
+  }, []);
+
+  return (
+    <div className="nft-generator">
+      <NFTPreview width={600} height={600} />
+      {/* Add your layer controls here */}
+    </div>
+  );
+}
+```
+
+### Configuration
+
+The component accepts the following props:
+
+```typescript
+interface NFTPreviewProps {
+  width?: number;      // Canvas width in pixels
+  height?: number;     // Canvas height in pixels
+  className?: string;  // Additional CSS classes
+  children?: ReactNode; // Optional child components
+}
+```
+
+### Layer Management
+
+Layers can be configured with the following options:
+
+```typescript
+interface NFTLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  zIndex: number;
+  opacity?: number;
+  blendMode?: GlobalCompositeOperation;
+  assets?: {
+    id: string;
+    url: string;
+  }[];
+}
 ```
 
 ## Styling
 
-The component comes with default styles but can be customized using CSS:
+The component comes with default styles that can be customized using CSS variables:
 
 ```css
-.nft-preview-container {
-  /* Container styles */
-}
-
-.nft-preview-wrapper {
-  /* Wrapper styles */
-}
-
-.nft-preview-canvas {
-  /* Canvas styles */
-}
-
-.nft-preview-loading {
-  /* Loading state styles */
-}
-
-.nft-preview-error {
-  /* Error state styles */
+.nft-preview {
+  --nft-preview-bg: #f5f5f5;
+  --nft-preview-border: #e0e0e0;
+  --nft-preview-shadow: rgba(0, 0, 0, 0.1);
+  --nft-preview-radius: 12px;
 }
 ```
 
@@ -99,8 +137,8 @@ The component comes with default styles but can be customized using CSS:
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Start development server: `npm start`
-4. Run tests: `npm test`
+3. Start development server: `npm run dev`
+4. Build: `npm run build`
 
 ## License
 
