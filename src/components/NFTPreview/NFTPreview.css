@@ -1,0 +1,79 @@
+.nft-preview-container {
+  position: relative;
+  width: 100%;
+  opacity: 0; /* Initial state for fade animation */
+}
+
+.nft-preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.nft-preview-canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.nft-preview-canvas.loading {
+  opacity: 0.5;
+}
+
+.nft-preview-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 80%;
+  font-size: 0.875rem;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  box-shadow: 0 2px 4px rgba(255, 59, 48, 0.1);
+}
+
+.nft-preview-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nft-preview-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.nft-preview-loading-text {
+  color: #666;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
